@@ -1,7 +1,7 @@
 from dataclasses import replace
 from PIL.ImageQt import ImageQt
 from PySide6.QtCore import Qt, Signal, QRectF, QPointF
-from PySide6.QtGui import QPixmap, QPainterPath, QPen, QColor
+from PySide6.QtGui import QPixmap, QPainterPath, QPen, QColor, QPainter
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem
 from .core import Shape
 
@@ -16,6 +16,7 @@ class Canvas(QGraphicsView):
     def __init__(self, document):
         super().__init__()
         self.document = document
+        self.setRenderHint(QPainter.SmoothPixmapTransform, True)
         self.base_pixmap = pixmap(document.pixels)
         self.setScene(QGraphicsScene(self))
         self.tool = 'rect'

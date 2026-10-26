@@ -14,13 +14,15 @@ import zlib
 import pypdfium2 as pdfium
 from PIL import Image
 
-from .core import Document, ImageError, MAX_PIXELS, render
+from .core import Document, ImageError, render
 
-PDF_DPI = 200
+PDF_DPI = 300
+PDF_RESOLUTIONS = (200, 300, 400, 600)
 MAX_PDF_BYTES = 100 * 1024 * 1024
 MAX_OPEN_PDF_BYTES = 200 * 1024 * 1024
 MAX_PDF_PAGES = 100
-MAX_PDF_TOTAL_PIXELS = 200_000_000
+MAX_PDF_PAGE_PIXELS = 48_000_000
+MAX_PDF_TOTAL_PIXELS = 400_000_000
 MAX_OUTPUT_BYTES = 256 * 1024 * 1024
 _PDF_LOCK = threading.RLock()
 
@@ -32,6 +34,7 @@ class PdfBook:
     name: str
     sizes: list
     pages: list = field(default_factory=list)
+    dpi: int = PDF_DPI
 
     @property
     def shapes(self):
@@ -44,9 +47,11 @@ class PdfBook:
                     raise ImageError('XFA PDF forms are not supported. Use a flattened PDF.')
                 pdf.init_forms(config=pdfium.raw.FPDF_FORMFILLINFO(version=2, xfa_disabled=True))
                 with closing(pdf[index]) as page:
-                    with closing(page.render(scale=PDF_DPI / 72, draw_annots=True)) as bitmap:
+                    with closing(page.render(scale=self.dpi / 72, draw_annots=True)) as bitmap:
                         pixels = bitmap.to_pil().convert('RGBA')
-                        return Image.frombytes('RGBA', pixels.size, pixels.tobytes())
+                        # convert() owns its pixel buffer independently of the native bitmap.
+                        pixels.info.clear()
+                        return pixels
         except ImageError:
             raise
         except Exception:
@@ -66,22 +71,24 @@ class PdfBook:
         return page
 
 
-def load_pdf(path):
+def load_pdf(path, dpi=PDF_DPI):
     try:
         path = Path(path)
         with path.open('rb') as stream:
             data = stream.read(MAX_PDF_BYTES + 1)
         if len(data) > MAX_PDF_BYTES:
             raise ImageError('PDF exceeds the 100 MB input limit.')
-        return pdf_from_bytes(data, path.resolve(), path.stem)
+        return pdf_from_bytes(data, path.resolve(), path.stem, dpi=dpi)
     except ImageError:
         raise
     except Exception:
         raise ImageError('PDF could not be opened safely. It may be damaged or password-protected.') from None
 
 
-def pdf_from_bytes(data, source=None, name='PDF document'):
+def pdf_from_bytes(data, source=None, name='PDF document', dpi=PDF_DPI):
     try:
+        if dpi not in PDF_RESOLUTIONS:
+            raise ImageError('Choose a supported PDF resolution: 200, 300, 400 or 600 DPI.')
         if len(data) > MAX_PDF_BYTES:
             raise ImageError('PDF exceeds the 100 MB input limit.')
         with _PDF_LOCK, pdfium.PdfDocument(data) as pdf:
@@ -98,14 +105,14 @@ def pdf_from_bytes(data, source=None, name='PDF document'):
                     width, height = page.get_size()
                 if not all(math.isfinite(v) and v > 0 for v in (width, height)):
                     raise ImageError('PDF has an invalid page size.')
-                pixels = math.ceil(width * PDF_DPI / 72) * math.ceil(height * PDF_DPI / 72)
-                if pixels > MAX_PIXELS:
-                    raise ImageError('A PDF page exceeds the 24 megapixel rendering limit.')
+                pixels = math.ceil(width * dpi / 72) * math.ceil(height * dpi / 72)
+                if pixels > MAX_PDF_PAGE_PIXELS:
+                    raise ImageError('A PDF page exceeds 48 megapixels at this resolution. Choose a lower PDF resolution in Settings and reopen it.')
                 total += pixels
                 sizes.append((width, height))
             if total > MAX_PDF_TOTAL_PIXELS:
-                raise ImageError('PDF exceeds the 200 megapixel total rendering budget.')
-        book = PdfBook(data, source, name, sizes)
+                raise ImageError('PDF exceeds the total rendering budget. Choose a lower PDF resolution in Settings and reopen it.')
+        book = PdfBook(data, source, name, sizes, dpi=dpi)
         book.pages = [Document(None, source, f'{name} — page {i+1}', pdf_book=book, page_index=i)
                       for i in range(len(sizes))]
         book.load_page(0)
@@ -164,11 +171,11 @@ def encode_pdf(book):
     return output.getvalue()
 
 
-def preview_pdf(data, index):
+def preview_pdf(data, index, dpi=PDF_DPI):
     """Decode the actual exported PDF, not its editable input, for review."""
     with _PDF_LOCK, pdfium.PdfDocument(data) as pdf:
         with closing(pdf[index]) as page:
-            with closing(page.render(scale=PDF_DPI / 72)) as bitmap:
+            with closing(page.render(scale=dpi / 72)) as bitmap:
                 return bitmap.to_pil().convert('RGB').copy()
 
 

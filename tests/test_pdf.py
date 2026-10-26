@@ -7,7 +7,20 @@ from pypdf.generic import (NameObject, DictionaryObject, DecodedStreamObject,
                            ArrayObject, FloatObject, TextStringObject)
 
 from redact_studio.core import ImageError, Shape, render, write_unique
-from redact_studio.pdf import load_pdf, pdf_from_bytes, encode_pdf, preview_pdf
+from redact_studio.pdf import load_pdf as _load_pdf, pdf_from_bytes as _pdf_from_bytes, encode_pdf, preview_pdf as _preview_pdf
+
+
+# Keep established security fixtures at 200 DPI; resolution cases below test all new options.
+def load_pdf(path, **kwargs):
+    return _load_pdf(path, dpi=200, **kwargs)
+
+
+def pdf_from_bytes(data, **kwargs):
+    return _pdf_from_bytes(data, dpi=200, **kwargs)
+
+
+def preview_pdf(data, index):
+    return _preview_pdf(data, index, dpi=200)
 
 
 def synthetic_pdf(pages=2, rotate=False, encrypted=False):
@@ -100,7 +113,7 @@ def test_lazy_page_cache_and_independent_history(pdf_file):
     assert page1.pixels is None
 
 
-@pytest.mark.parametrize('limit,value', [('MAX_PDF_PAGES',1),('MAX_PIXELS',100),
+@pytest.mark.parametrize('limit,value', [('MAX_PDF_PAGES',1),('MAX_PDF_PAGE_PIXELS',100),
                                         ('MAX_PDF_TOTAL_PIXELS',100),('MAX_PDF_BYTES',100)])
 def test_preflight_limits(pdf_file, monkeypatch, limit, value):
     import redact_studio.pdf as module
@@ -314,3 +327,58 @@ def test_incomplete_overview_cannot_be_exported(app, pdf_file, monkeypatch):
     assert not review.save_button.isEnabled()
     review.accept(); assert review.result() != QDialog.Accepted
     review.close()
+
+
+@pytest.mark.parametrize('dpi', [200, 300, 400, 600])
+def test_pdf_resolution_and_redaction_alignment(dpi):
+    from redact_studio.pdf import pdf_from_bytes, preview_pdf
+    book = pdf_from_bytes(synthetic_pdf(pages=1), dpi=dpi)
+    assert book.dpi == dpi
+    assert book.pages[0].pixels.size == (dpi*2, dpi*2)
+    # Redact the same physical top half at every resolution.
+    book.pages[0].commit([Shape('rect', ((0,0),(dpi*2,dpi)))])
+    data = encode_pdf(book)
+    reader = PdfReader(BytesIO(data), strict=True)
+    image = list(reader.pages[0].images)[0].image.convert('RGB')
+    assert image.size == (dpi*2, dpi*2)
+    assert image.getpixel((dpi,dpi//2)) == (0,0,0)
+    assert tuple(reader.pages[0].mediabox)[2:] == (144,144)
+    assert preview_pdf(data,0,dpi=dpi).tobytes() == image.tobytes()
+
+
+def test_default_pdf_resolution_and_invalid_choice():
+    from redact_studio.pdf import pdf_from_bytes
+    book = pdf_from_bytes(synthetic_pdf(pages=1))
+    assert book.dpi == 300
+    assert book.pages[0].pixels.size == (600,600)
+    with pytest.raises(ImageError): pdf_from_bytes(synthetic_pdf(pages=1), dpi=1200)
+
+
+def test_pdf_resolution_choice_applies_only_to_new_documents(app, pdf_file):
+    from redact_studio.window import Window
+    window = Window()
+    window.pdf_dpi = 300
+    window.import_paths([str(pdf_file)])
+    original = window.subject()
+    original.pages[0].commit([Shape('rect', ((15,15),(100,100)))])
+    window.pdf_dpi = 400
+    window.import_paths([str(pdf_file)])
+    assert window.subject().dpi == 400
+    assert original.dpi == 300
+    assert original.pages[0].shapes[0].points == ((15,15),(100,100))
+    window.tabs.clear(); window.close()
+
+
+def test_a4_at_600_dpi_and_oversized_page_rejection():
+    from redact_studio.pdf import pdf_from_bytes
+    writer = PdfWriter()
+    writer.add_blank_page(width=595,height=842)
+    buffer = BytesIO(); writer.write(buffer)
+    book = pdf_from_bytes(buffer.getvalue(), dpi=600)
+    assert book.pages[0].pixels.size == (4959,7017)
+    book.pages[0].pixels = None
+    writer = PdfWriter()
+    writer.add_blank_page(width=842,height=1191)
+    buffer = BytesIO(); writer.write(buffer)
+    with pytest.raises(ImageError, match='lower PDF resolution'):
+        pdf_from_bytes(buffer.getvalue(), dpi=600)

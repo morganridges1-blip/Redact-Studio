@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
 
 from .canvas import Canvas, pixmap
 from .core import ImageError
-from .pdf import PDF_DPI, encode_pdf, preview_pdf, preview_pdf_pages
+from .pdf import encode_pdf, preview_pdf, preview_pdf_pages
 from .tasks import pixel_work
 
 
@@ -36,7 +36,7 @@ class PdfEditor(QWidget):
         navigation.addWidget(self.number)
         navigation.addWidget(self.next)
         navigation.addStretch()
-        navigation.addWidget(QLabel(f'{PDF_DPI} DPI • Image-only PDF export'))
+        navigation.addWidget(QLabel(f'{book.dpi} DPI • Image-only PDF export'))
         self.layout.addLayout(navigation)
         self.canvas = Canvas(book.pages[0])
         self.layout.addWidget(self.canvas)
@@ -60,7 +60,7 @@ class PdfEditor(QWidget):
         old = self.canvas
         try:
             width, height = self.book.sizes[index]
-            required = math.ceil(width*PDF_DPI/72) * math.ceil(height*PDF_DPI/72)
+            required = math.ceil(width*self.book.dpi/72) * math.ceil(height*self.book.dpi/72)
             if not self.budget_check(required):
                 raise ImageError('Close other documents before opening this PDF page.')
             old.cancel()
@@ -175,7 +175,7 @@ class PdfReview(QDialog):
                     item.setForeground(QColor('#d99000'))
                 self.overview.addItem(item)
             redactions = sum(len(page.shapes) for page in book.pages)
-            summary = f'{len(book.pages)} pages • {redactions} redactions • {PDF_DPI} DPI'
+            summary = f'{len(book.pages)} pages • {redactions} redactions • {book.dpi} DPI'
             if self.unredacted:
                 summary += ' • No redactions on pages: ' + ', '.join(map(str, self.unredacted))
             self.summary.setText(summary)
@@ -214,7 +214,7 @@ class PdfReview(QDialog):
             return
         try:
             index = self.number.value()-1
-            self.preview_image = pixel_work(self, lambda: preview_pdf(self.data, index), 'Opening exported PDF page for review…')
+            self.preview_image = pixel_work(self, lambda: preview_pdf(self.data, index, self.book.dpi), 'Opening exported PDF page for review…')
             self.image_label.setPixmap(pixmap(self.preview_image))
             self.image_label.setMinimumSize(*self.preview_image.size)
             self.views.blockSignals(True)

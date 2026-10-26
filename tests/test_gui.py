@@ -148,3 +148,19 @@ def test_review_fails_closed_on_render_error(app,monkeypatch):
     assert not review.confirm.isEnabled()
     review.accept(); assert review.result()!=QDialog.Accepted
     review.close()
+
+
+def test_start_screen_and_application_icon(app):
+    from redact_studio.resources import asset
+    from PIL import Image
+    window = Window()
+    assert not window.windowIcon().isNull()
+    assert window.workspace.currentIndex() == 0
+    window.add_document(Document(Image.new('RGBA',(16,16),'white')))
+    assert window.workspace.currentIndex() == 1
+    window.tabs.clear()
+    assert window.workspace.currentIndex() == 0
+    with Image.open(asset('app.ico')) as icon:
+        assert (16,16) in icon.ico.sizes()
+        assert (256,256) in icon.ico.sizes()
+    window.close()

@@ -4,7 +4,7 @@ Open a PDF with **Open Image / PDF**, **Add Files**, or drag and drop. Each PDF 
 
 ## Export
 
-Exporting a PDF always creates a **new PDF containing all pages**, in their original order. Each page is rendered locally at **200 DPI**, redactions permanently replace the covered pixels, and sanitised RGB pixels are losslessly compressed into a new PDF image object. Page dimensions, visible crop and rotation are reflected in the rendered output. Rendering is fixed at 200 DPI; it is not a vector-preserving conversion.
+Exporting a PDF always creates a **new PDF containing all pages**, in their original order. Each page is rendered locally at **300 DPI by default**, redactions permanently replace the covered pixels, and sanitised RGB pixels are losslessly compressed into a new PDF image object. Page dimensions, visible crop and rotation are reflected in the rendered output. Choose 200, 300, 400 or 600 DPI in **File → Settings → PDF resolution (new PDFs)** before opening the document. The selected resolution is fixed for that document and used for editing, detailed review and export, so redaction coordinates remain aligned. Changing Settings affects newly opened PDFs only. This is not a vector-preserving conversion; higher DPI improves vector rendering but cannot restore detail missing from embedded low-resolution images.
 
 Review shows all pages in a scrollable thumbnail overview decoded from the actual output PDF. Double-click any page for full-resolution inspection. A single confirmation approves the entire document; there are no individual page approvals. Pages without redactions are labelled in the overview and listed in the summary, and the document-level confirmation explicitly includes them. Batch Export treats each PDF as one document and uses the same whole-document review. Clipboard copying exports the current page as sanitised image pixels; it does not copy the source PDF.
 
@@ -19,9 +19,9 @@ Original PDFs are never modified or overwritten. Filename collisions receive a u
 | Input PDF size | 100 MB |
 | Retained source bytes across open PDFs | 200 MB maximum |
 | Pages | 100 maximum |
-| Resolution | 200 DPI |
-| Rendered size per page | 24 megapixels maximum |
-| Rendered size across a PDF | 200 megapixels maximum |
+| Resolution | 300 DPI default; 200 / 300 / 400 / 600 DPI selectable |
+| Rendered size per PDF page | 48 megapixels maximum |
+| Rendered size across a PDF | 400 megapixels maximum |
 | Output PDF size | 256 MB maximum |
 | Open-document cached image budget | 48 megapixels |
 
@@ -41,3 +41,5 @@ The new dependencies had no active advisories in their exact-version PyPI metada
 Tests use synthetic PDFs with text, XMP/author metadata, attachments, JavaScript, annotations and form fields. Independent pypdf inspection checks that output contains only a fresh page tree, content instructions and sanitised image objects; image bytes match the redaction engine output. Tests also cover rotated/cropped pages, page order, physical size, lazy caching, separate histories, source preservation, encrypted/corrupt inputs, budgets, failed rendering, PDF export routing and whole-document approval, thumbnail completeness and full-resolution inspection. The packaged application self-test exercises PDFium import, PDF decoding, redaction and PDF re-encoding without using pypdf or writing unredacted temporary files.
 
 The [Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40342516885) passed all 66 tests and the packaged PDF self-test. Download the [PDF-capable Windows application](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40342516885/artifacts/12659657370) and replace the full application folder.
+
+Higher DPI uses more memory and may increase file size. Standard A4 at 600 DPI is supported within the page budget. Larger pages/documents may require 300 or 400 DPI; limit errors instruct you to choose a lower resolution and reopen. The application does not silently reduce export resolution.

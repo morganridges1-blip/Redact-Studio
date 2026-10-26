@@ -3,10 +3,15 @@ import sys
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 from redact_studio.window import Window
+from redact_studio.resources import app_icon
 
 
 def main():
+    if sys.platform == 'win32':
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('MorganRidges.RedactStudio')
     app = QApplication(sys.argv)
+    app.setWindowIcon(app_icon())
     app.setApplicationName('Redact Studio')
     app.setOrganizationName('RedactStudio')
     app.setStyle('Fusion')
@@ -15,6 +20,8 @@ def main():
     if '--self-test' in sys.argv:
         def check():
             try:
+                if app.windowIcon().isNull() or window.windowIcon().isNull():
+                    raise RuntimeError('Application icon missing')
                 from PIL import Image
                 from redact_studio.core import Document, Shape, encode, decoded_preview
                 document = Document(Image.new('RGBA', (64, 48), 'red'), name='Synthetic self-test')

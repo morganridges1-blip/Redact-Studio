@@ -2,13 +2,15 @@ from pathlib import Path
 from PIL import Image
 from PySide6.QtCore import Qt, QTimer, QSettings
 from PySide6.QtGui import QAction, QKeySequence, QColor, QImage
-from PySide6.QtWidgets import (QApplication,QMainWindow,QToolBar,QDockWidget,QWidget,
+from PySide6.QtWidgets import (QApplication,QMainWindow,QToolBar,QDockWidget,QWidget,QStackedWidget,
  QVBoxLayout,QHBoxLayout,QPushButton,QLabel,QListWidget,QAbstractItemView,QSpinBox,
  QColorDialog,QFileDialog,QMessageBox,QTabWidget,QDialog,QDialogButtonBox,QComboBox,
  QLineEdit,QFormLayout,QCheckBox,QScrollArea,QProgressDialog)
 from .canvas import Canvas, pixmap
+from .resources import app_icon
+from .theme import stylesheet
 from .tasks import pixel_work
-from .pdf import PdfBook, load_pdf, MAX_OPEN_PDF_BYTES
+from .pdf import PdfBook, load_pdf, MAX_OPEN_PDF_BYTES, PDF_DPI, PDF_RESOLUTIONS
 from .pdf_ui import PdfEditor, PdfReview
 from .core import Document, ImageError, load_image, encode, decoded_preview, write_unique, MAX_PIXELS, MAX_DOCUMENT_PIXELS
 
@@ -100,6 +102,7 @@ class Window(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Redact Studio')
+        self.setWindowIcon(app_icon())
         self.resize(1420,900)
         self.setAcceptDrops(True)
         self.preferences = QSettings('RedactStudio','RedactStudio')
@@ -108,13 +111,44 @@ class Window(QMainWindow):
                          'suffix':str(self.preferences.value('suffix','_REDACTED')),
                          'quality':int(self.preferences.value('quality',95)),
                          'compression':int(self.preferences.value('compression',6))}
+        self.pdf_dpi = int(self.preferences.value('pdf_dpi', PDF_DPI))
+        if self.pdf_dpi not in PDF_RESOLUTIONS:
+            self.pdf_dpi = PDF_DPI
         self.color = str(self.preferences.value('color','#000000'))
         self.default_tool = str(self.preferences.value('tool','rect'))
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(self.close_tab)
         self.tabs.currentChanged.connect(self.sync)
-        self.setCentralWidget(self.tabs)
+        self.workspace = QStackedWidget()
+        welcome = QWidget()
+        welcome.setObjectName('welcome')
+        welcome_layout = QVBoxLayout(welcome)
+        welcome_layout.setAlignment(Qt.AlignCenter)
+        logo = QLabel()
+        logo.setPixmap(app_icon().pixmap(88,88))
+        logo.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(logo)
+        title = QLabel('Redact Studio')
+        title.setObjectName('welcomeTitle')
+        title.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(title)
+        subtitle = QLabel('Open an image or PDF to get started.')
+        subtitle.setObjectName('muted')
+        subtitle.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(subtitle)
+        open_button = QPushButton('Open a file')
+        open_button.setObjectName('primary')
+        open_button.setFixedWidth(180)
+        open_button.clicked.connect(self.open_files)
+        welcome_layout.addWidget(open_button, alignment=Qt.AlignHCenter)
+        hint = QLabel('Or drag and drop a file here\nAll processing stays on your device.')
+        hint.setObjectName('muted')
+        hint.setAlignment(Qt.AlignCenter)
+        welcome_layout.addWidget(hint)
+        self.workspace.addWidget(welcome)
+        self.workspace.addWidget(self.tabs)
+        self.setCentralWidget(self.workspace)
         self.toolbar = QToolBar('Image operations')
         self.toolbar.setMovable(False)
         self.addToolBar(self.toolbar)
@@ -127,7 +161,15 @@ class Window(QMainWindow):
             ('Actual Size','Ctrl+1',lambda:self.navigate('actual')),('Preview','',self.export),
             ('Export','Ctrl+S',self.export)]:
             self.action(name,shortcut,callback,self.toolbar)
+        for name in ('Add Files', 'Preview'):
+            self.toolbar.removeAction(self.actions[name])
+        self.actions['Open Image / PDF'].setText('Open')
+        self.actions['Paste Image'].setText('Paste')
+        self.actions['Fit to Window'].setText('Fit')
+        self.actions['Actual Size'].setText('100%')
         menu = self.menuBar().addMenu('File')
+        menu.addAction(self.actions['Add Files'])
+        menu.addAction(self.actions['Preview'])
         self.action('Export As','Ctrl+Shift+S',self.export,menu)
         self.action('Batch Export','',self.batch,menu)
         self.action('Copy Redacted Image','Ctrl+Shift+C',self.copy,menu)
@@ -139,7 +181,6 @@ class Window(QMainWindow):
         self.action('Cancel Operation','Esc',lambda:self.canvas() and self.canvas().cancel(),edit)
         tools = QWidget()
         left = QVBoxLayout(tools)
-        left.addWidget(QLabel('REDACTION TOOLS'))
         self.tool_buttons = {}
         for title,key,tool in [('Rectangle','R','rect'),('Freehand','B','brush'),('Selection','V','select'),
                                ('Remove Redaction','','remove'),('Pan','H','pan')]:
@@ -151,12 +192,13 @@ class Window(QMainWindow):
             self.action(title+' shortcut',key,lambda checked=False,t=tool:self.tool(t),edit)
         help_text = QLabel('Selection: drag to move.\nShift/Ctrl-click: multi-select.\nDrag a selected rectangle’s\nbottom-right corner to resize.\n\nWheel: zoom at cursor.\nSpace + drag / middle drag: pan.')
         help_text.setWordWrap(True)
-        left.addWidget(help_text)
+        help_text.hide()
+        tools.setToolTip(help_text.text())
         left.addStretch()
         self.dock('Tools',tools,Qt.LeftDockWidgetArea)
         properties = QWidget()
         right = QVBoxLayout(properties)
-        self.tool_label = QLabel('Open an image to begin')
+        self.tool_label = QLabel('No document open')
         right.addWidget(self.tool_label)
         self.color_button = QPushButton('Colour: '+self.color)
         self.color_button.clicked.connect(self.choose_color)
@@ -180,7 +222,7 @@ class Window(QMainWindow):
         right.addWidget(QLabel('● Local processing\nMetadata stripped on every export'))
         self.dock('Redaction properties',properties,Qt.RightDockWidgetArea)
         self.apply_theme(str(self.preferences.value('theme','dark')))
-        self.statusBar().showMessage('Ready • Local processing • Open or drop images')
+        self.statusBar().showMessage('Ready • Local processing • Open an image or PDF')
 
     def action(self,name,shortcut,callback,container):
         action = QAction(name,self)
@@ -192,6 +234,10 @@ class Window(QMainWindow):
 
     def dock(self,title,widget,area):
         dock=QDockWidget(title,self); dock.setWidget(widget); dock.setMinimumWidth(210)
+        dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        heading = QLabel(title.upper())
+        heading.setObjectName('sectionTitle')
+        dock.setTitleBarWidget(heading)
         self.addDockWidget(area,dock)
 
     def canvas(self):
@@ -253,7 +299,7 @@ class Window(QMainWindow):
 
     def import_paths(self,paths):
         for path in paths:
-            loader = load_pdf if Path(path).suffix.lower() == '.pdf' else load_image
+            loader = (lambda p: load_pdf(p, dpi=self.pdf_dpi)) if Path(path).suffix.lower() == '.pdf' else load_image
             self.guard(lambda p=path,fn=loader:self.add_document(pixel_work(self,lambda:fn(p),'Loading document locally…')))
 
     def paste(self):
@@ -286,16 +332,19 @@ class Window(QMainWindow):
     def sync(self,*args):
         if not hasattr(self,'regions'): return
         canvas=self.canvas()
+        self.workspace.setCurrentIndex(1 if self.tabs.count() else 0)
         self.regions.blockSignals(True)
         self.regions.clear()
         if canvas:
             for i,s in enumerate(canvas.document.shapes): self.regions.addItem(f'{i+1:02d}  {"Rectangle" if s.kind=="rect" else "Brush stroke"}')
             for i in canvas.selected(): self.regions.item(i).setSelected(True)
             self.count.setText(f'{len(canvas.document.shapes)} redactions')
-            self.tool_label.setText('Current tool: '+canvas.tool)
+            self.tool_label.setText({'rect':'Rectangle', 'brush':'Freehand', 'select':'Selection', 'remove':'Remove redaction', 'pan':'Pan'}[canvas.tool])
             for tool,b in self.tool_buttons.items(): b.setChecked(tool==canvas.tool)
             canvas.color=self.color; canvas.brush=self.brush.value()
-        else: self.count.setText('0 redactions')
+        else:
+            self.count.setText('0 redactions')
+            self.tool_label.setText('No document open')
         self.regions.blockSignals(False)
         self.selection_status()
         self.status()
@@ -318,9 +367,11 @@ class Window(QMainWindow):
 
     def status(self):
         c=self.canvas()
+        if not c:
+            self.statusBar().showMessage('Ready • Local processing • Open an image or PDF')
         if c:
             d=c.document
-            page_info = f' • Page {d.page_index+1}/{len(d.pdf_book.pages)} • 200 DPI' if d.pdf_book else ''
+            page_info = f' • Page {d.page_index+1}/{len(d.pdf_book.pages)} • {d.pdf_book.dpi} DPI' if d.pdf_book else ''
             self.statusBar().showMessage(f'{d.source.name if d.source else d.name} • {d.pixels.width} × {d.pixels.height} • {c.transform().m11()*100:.0f}% • {len(d.shapes)} redactions{page_info} • Local processing')
 
     def history(self,redo):
@@ -414,8 +465,7 @@ class Window(QMainWindow):
 
     def apply_theme(self,theme):
         self.theme=theme
-        bg,fg,panel=('#202632','#edf0f7','#2c3443') if theme=='dark' else ('#f0f3f8','#172036','#ffffff')
-        self.setStyleSheet(f'QWidget {{ background:{bg}; color:{fg}; font-size:13px; }} QToolBar,QMenuBar,QDockWidget {{ spacing:6px; }} QPushButton,QComboBox,QSpinBox,QLineEdit {{ background:{panel}; padding:7px; border:1px solid #6a7385; border-radius:4px; }} QPushButton:checked {{ background:#365ec8; color:white; }} QToolButton {{ padding:8px; }} QListWidget {{ background:{panel}; }} QStatusBar {{ padding:5px; }}')
+        self.setStyleSheet(stylesheet(theme))
 
     def settings(self):
         dialog=QDialog(self); dialog.setWindowTitle('Settings'); layout=QFormLayout(dialog)
@@ -425,13 +475,19 @@ class Window(QMainWindow):
         suffix=QLineEdit(self.defaults['suffix'])
         quality=QSpinBox(); quality.setRange(1,100); quality.setValue(self.defaults['quality'])
         compression=QSpinBox(); compression.setRange(0,9); compression.setValue(self.defaults['compression'])
+        pdf_quality=QComboBox()
+        for dpi in PDF_RESOLUTIONS:
+            pdf_quality.addItem(f'{dpi} DPI', dpi)
+        pdf_quality.setCurrentIndex(pdf_quality.findData(self.pdf_dpi))
         tool=QComboBox(); tool.addItems(['rect','brush','select','pan']); tool.setCurrentText(self.default_tool)
-        for label,widget in [('Appearance',theme),('Default tool',tool),('Export format',fmt),('Export directory',directory),('Filename suffix',suffix),('JPEG quality',quality),('PNG compression',compression)]: layout.addRow(label,widget)
+        for label,widget in [('Appearance',theme),('PDF resolution (new PDFs)',pdf_quality),('Default tool',tool),('Export format',fmt),('Export directory',directory),('Filename suffix',suffix),('JPEG quality',quality),('PNG compression',compression)]: layout.addRow(label,widget)
         label=QLabel(PRIVACY+'\nColour and brush defaults use the current sidebar values.'); label.setWordWrap(True); layout.addRow(label)
         buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); layout.addRow(buttons)
         buttons.accepted.connect(dialog.accept); buttons.rejected.connect(dialog.reject)
         if dialog.exec()==QDialog.Accepted:
             self.defaults={'format':fmt.currentText(),'directory':directory.text(),'suffix':suffix.text(),'quality':quality.value(),'compression':compression.value()}
+            self.pdf_dpi=pdf_quality.currentData()
+            self.preferences.setValue('pdf_dpi', self.pdf_dpi)
             self.default_tool=tool.currentText()
             self.apply_theme(theme.currentText())
             for key,value in {**self.defaults,'theme':self.theme,'tool':self.default_tool,'color':self.color,'brush':self.brush.value()}.items(): self.preferences.setValue(key,value)
