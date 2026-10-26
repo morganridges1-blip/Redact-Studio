@@ -5,7 +5,9 @@ Native Python / Qt desktop editor for manual image redaction and mandatory metad
 
 ## Download the Windows executable
 
-**Security update:** use a build containing Pillow **13.0.0**. The original Windows package from run #2 contains an affected Pillow version and is superseded. A replacement is being validated in the [Windows build workflow](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml). Download **RedactStudio-Windows** from the successful security-update run’s **Artifacts** section while signed into GitHub. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
+**Security update:** Pillow is now **13.0.0**, fixing the reported Pillow advisories. Download the rebuilt **[RedactStudio-Windows ZIP](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583/artifacts/12643422335)** (52.9 MB) while signed into GitHub, or open the [successful security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583) and find **Artifacts**. The Windows tests and packaged-application self-test passed. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
+
+**Replace the entire old application folder, including `_internal`.** The original run #2 executable and libraries contain the affected Pillow version and are superseded.
 
 Extract the complete ZIP into a folder, then double-click `RedactStudio.exe`. Keep the `_internal` folder beside it; this is a portable application folder, not a single self-contained executable. Python does not need to be installed on the destination PC. The executable is unsigned. Interactive Windows 11 desktop acceptance testing remains outstanding.
 
@@ -70,6 +72,6 @@ powershell -ExecutionPolicy Bypass -File packaging/build-windows.ps1
 
 The process does not request elevation. The build script installs dependencies, runs tests and packages an onedir application. Distribute the **entire** `dist/RedactStudio` folder, including Qt/Pillow libraries and their licence notices. Do not distribute just the executable. Build-time PowerShell execution policy override applies to this command only. No installer or administrator privileges are needed for normal use.
 
-`.github/workflows/windows.yml` also tests and packages on a Windows runner and uploads a downloadable artifact when run in GitHub. The workflow succeeded in [run #2](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40305162812): Windows source tests, executable packaging and the frozen-application self-test all passed. PyInstaller does not cross-compile Windows executables on Linux; this executable was built on GitHub’s Windows runner. Interactive Windows 11 acceptance testing is still required.
+`.github/workflows/windows.yml` also tests and packages on a Windows runner and uploads a downloadable artifact when run in GitHub. The workflow succeeded in the [security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583): Windows source tests, executable packaging and the frozen-application self-test all passed. PyInstaller does not cross-compile Windows executables on Linux; this executable was built on GitHub’s Windows runner. Interactive Windows 11 acceptance testing is still required.
 
 Before workplace deployment, run the Windows acceptance checklist in [SECURITY.md](SECURITY.md), review dependency licences and decide whether your organisation requires executable signing. Unsigned executables can trigger SmartScreen. See [VALIDATION.md](VALIDATION.md) for executed checks and outstanding validation.
