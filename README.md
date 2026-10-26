@@ -16,7 +16,7 @@ A native desktop editor for images and PDFs that permanently replaces selected i
 
 ## Download for Windows
 
-### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40345377516/artifacts/12661187398)
+### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437/artifacts/12661539918)
 
 Portable application with image and PDF support · 56.8 MB · Python installation not required
 
@@ -69,7 +69,7 @@ See [PDF processing](PDF_SUPPORT.md) for page/file limits, rendering behaviour a
 3. **Review the output.** Select Preview or Export and inspect the entire image at its output resolution.
 4. **Save a sanitised copy.** Choose a format and destination, confirm your review and export.
 
-Existing filenames receive a unique suffix. Original files are opened read-only and are never overwritten. Every export strips inherited metadata, including images exported without redactions.
+Exports default to the imported file’s folder. An explicit export folder in Settings takes priority; leave it blank to use the source folder. Clipboard images use the home-folder fallback when no export folder is set. Existing filenames receive a unique suffix. Original files are opened read-only and are never overwritten. Every export strips inherited metadata, including images exported without redactions.
 
 PNG is recommended for predictable pixel coverage. JPEG expands redactions to complete **8×8 compression blocks** and disables chroma subsampling; its review preview shows the expanded coverage. WebP exports use lossless encoding.
 
@@ -138,7 +138,7 @@ $env:QT_SCALE_FACTOR = '2'
 
 For headless Linux, use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q`.
 
-The patched build passes **74 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
+The patched build passes **79 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
 
 ### Build the Windows executable
 

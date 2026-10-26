@@ -10,7 +10,7 @@ Review shows all pages in a scrollable thumbnail overview decoded from the actua
 
 **The result is an image-only PDF.** Searchable/selectable text, links, form fields, annotations as editable objects, attachments, JavaScript, accessibility tags, digital signatures, source thumbnails and inherited metadata are not copied. Visible standard form/annotation appearances are flattened into pixels where PDFium renders them. Existing signatures are not preserved or validated. Review visual output carefully, including forms and annotations, before saving. Image-only documents may be larger and lose accessibility/search features.
 
-Original PDFs are never modified or overwritten. Filename collisions receive a unique suffix. The original source bytes are held in memory while editing so a subsequent disk-file change cannot silently change the document being redacted. There are no unredacted temporary PDF/page files.
+Exports default to the folder containing the imported PDF, unless an export directory is explicitly configured in Settings. Original PDFs are never modified or overwritten. Filename collisions receive a unique suffix. The original source bytes are held in memory while editing so a subsequent disk-file change cannot silently change the document being redacted. There are no unredacted temporary PDF/page files.
 
 ## Limits
 
@@ -40,6 +40,6 @@ The new dependencies had no active advisories in their exact-version PyPI metada
 
 Tests use synthetic PDFs with text, XMP/author metadata, attachments, JavaScript, annotations and form fields. Independent pypdf inspection checks that output contains only a fresh page tree, content instructions and sanitised image objects; image bytes match the redaction engine output. Tests also cover rotated/cropped pages, page order, physical size, lazy caching, separate histories, source preservation, encrypted/corrupt inputs, budgets, failed rendering, PDF export routing and whole-document approval, thumbnail completeness and full-resolution inspection. The packaged application self-test exercises PDFium import, PDF decoding, redaction and PDF re-encoding without using pypdf or writing unredacted temporary files.
 
-The [Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40345377516) passed all 74 tests and the packaged PDF self-test. Download the [PDF-capable Windows application](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40345377516/artifacts/12661187398) and replace the full application folder.
+The [Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437) passed all 79 tests and the packaged PDF self-test. Download the [PDF-capable Windows application](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437/artifacts/12661539918) and replace the full application folder.
 
 Higher DPI uses more memory and may increase file size. Standard A4 at 600 DPI is supported within the page budget. Larger pages/documents may require 300 or 400 DPI; limit errors instruct you to choose a lower resolution and reopen. The application does not silently reduce export resolution.
