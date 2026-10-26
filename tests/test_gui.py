@@ -164,3 +164,31 @@ def test_start_screen_and_application_icon(app):
         assert (16,16) in icon.ico.sizes()
         assert (256,256) in icon.ico.sizes()
     window.close()
+
+
+@pytest.mark.parametrize('custom_folder', [False, True])
+def test_image_review_uses_source_folder_or_explicit_preference(app, tmp_path, custom_folder):
+    from pathlib import Path
+    from redact_studio.core import load_image
+    source_folder = tmp_path/'imports'; source_folder.mkdir()
+    source = source_folder/'example.png'
+    Image.new('RGB',(16,16),'red').save(source)
+    original = source.read_bytes()
+    override = tmp_path/'chosen'
+    defaults = {'format':'PNG','suffix':'_REDACTED','directory':str(override) if custom_folder else '',
+                'quality':95,'compression':6}
+    review = Review(load_image(source), defaults)
+    expected_folder = override if custom_folder else source_folder
+    assert Path(review.destination.text()) == expected_folder/'example_REDACTED.png'
+    review.format.setCurrentText('JPEG')
+    assert Path(review.destination.text()) == expected_folder/'example_REDACTED.jpg'
+    assert source.read_bytes() == original
+    review.close()
+
+
+def test_clipboard_review_retains_home_fallback(app):
+    from pathlib import Path
+    defaults = {'format':'PNG','suffix':'_REDACTED','directory':'','quality':95,'compression':6}
+    review = Review(Document(Image.new('RGBA',(8,8),'white')), defaults)
+    assert Path(review.destination.text()) == Path.home()/'Clipboard_REDACTED.png'
+    review.close()

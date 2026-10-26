@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QCheckBox, QDialogButtonBox, QMessageBox, QListWidget, QListWidgetItem, QTabWidget, QAbstractItemView)
 
 from .canvas import Canvas, pixmap
-from .core import ImageError
+from .core import ImageError, export_directory
 from .pdf import encode_pdf, preview_pdf, preview_pdf_pages
 from .tasks import pixel_work
 
@@ -99,7 +99,7 @@ class PdfReview(QDialog):
         self.summary = QLabel()
         layout.addWidget(self.summary)
         layout.addWidget(QLabel('PDF • Image-only pages • Metadata: Automatically stripped'))
-        self.destination = QLineEdit(str(Path(defaults['directory'] or Path.home()) /
+        self.destination = QLineEdit(str(export_directory(book.source, defaults['directory']) /
                                             (book.name+defaults['suffix']+'.pdf')))
         layout.addWidget(self.destination)
         choose = QPushButton('Choose PDF destination…')

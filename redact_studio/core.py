@@ -166,3 +166,10 @@ def write_unique(data, destination, sources=()):
             raise
         return target
     raise ImageError('Too many filename collisions; choose another filename.')
+
+
+def export_directory(source=None, configured=''):
+    """An explicit preference overrides the source folder; clipboard uses home."""
+    if configured:
+        return Path(configured)
+    return Path(source).parent if source is not None else Path.home()

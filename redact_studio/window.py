@@ -12,7 +12,7 @@ from .theme import stylesheet
 from .tasks import pixel_work
 from .pdf import PdfBook, load_pdf, MAX_OPEN_PDF_BYTES, PDF_DPI, PDF_RESOLUTIONS
 from .pdf_ui import PdfEditor, PdfReview
-from .core import Document, ImageError, load_image, encode, decoded_preview, write_unique, MAX_PIXELS, MAX_DOCUMENT_PIXELS
+from .core import Document, ImageError, load_image, encode, decoded_preview, write_unique, export_directory, MAX_PIXELS, MAX_DOCUMENT_PIXELS
 
 WARNING = ('Please review the entire image before exporting. Redact Studio does not automatically '
  'identify confidential information. All selected regions will be permanently redacted, '
@@ -88,7 +88,7 @@ class Review(QDialog):
         fmt = self.format.currentText()
         extension = {'PNG':'png','JPEG':'jpg','WEBP':'webp'}[fmt]
         name = self.document.name+self.defaults['suffix']+'.'+extension
-        self.destination.setText(str(Path(self.defaults['directory'] or Path.home())/name))
+        self.destination.setText(str(export_directory(self.document.source, self.defaults['directory'])/name))
         self.data = pixel_work(self, lambda: encode(self.document,fmt,self.defaults['quality'],self.defaults['compression']), 'Rendering and sanitising output…')
         self.preview_image = decoded_preview(self.data)
         # Scrollable 1:1 output enables inspection without hiding small sensitive text.
@@ -472,6 +472,7 @@ class Window(QMainWindow):
         theme=QComboBox(); theme.addItems(['dark','light']); theme.setCurrentText(self.theme)
         fmt=QComboBox(); fmt.addItems(['PNG','JPEG','WEBP']); fmt.setCurrentText(self.defaults['format'])
         directory=QLineEdit(self.defaults['directory'])
+        directory.setPlaceholderText('Leave blank to use the imported file’s folder')
         suffix=QLineEdit(self.defaults['suffix'])
         quality=QSpinBox(); quality.setRange(1,100); quality.setValue(self.defaults['quality'])
         compression=QSpinBox(); compression.setRange(0,9); compression.setValue(self.defaults['compression'])

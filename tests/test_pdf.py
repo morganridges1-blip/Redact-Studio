@@ -382,3 +382,16 @@ def test_a4_at_600_dpi_and_oversized_page_rejection():
     buffer = BytesIO(); writer.write(buffer)
     with pytest.raises(ImageError, match='lower PDF resolution'):
         pdf_from_bytes(buffer.getvalue(), dpi=600)
+
+
+@pytest.mark.parametrize('custom_folder', [False, True])
+def test_pdf_review_uses_source_folder_or_explicit_preference(app, pdf_file, tmp_path, custom_folder):
+    from pathlib import Path
+    from redact_studio.pdf_ui import PdfReview
+    original = pdf_file.read_bytes()
+    override = tmp_path/'chosen'
+    review = PdfReview(load_pdf(pdf_file), {'directory':str(override) if custom_folder else '', 'suffix':'_REDACTED'})
+    expected_folder = override if custom_folder else pdf_file.parent
+    assert Path(review.destination.text()) == expected_folder/'fictional_REDACTED.pdf'
+    assert pdf_file.read_bytes() == original
+    review.close()
