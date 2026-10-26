@@ -1,77 +1,156 @@
-# Redact-Studio
-Securely redact information from images, overwriting the pixels and deletion of metadata
+# Redact Studio
 
-Native Python / Qt desktop editor for manual image redaction and mandatory metadata stripping. Processing uses local, deterministic Pillow operations. The application contains no AI, machine learning, OCR, HTTP client, telemetry or upload feature.
+**Redact sensitive information in images, entirely on your own device.**
 
-## Download the Windows executable
+A native desktop editor that permanently replaces selected image pixels and automatically removes inherited metadata from exported copies. Built with Python, PySide6 and Pillow for offline use.
 
-**Security update:** Pillow is now **13.0.0**, fixing the reported Pillow advisories. Download the rebuilt **[RedactStudio-Windows ZIP](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583/artifacts/12643422335)** (52.9 MB), or open the [successful security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583) and find **Artifacts**. The Windows tests and packaged-application self-test passed. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
+[![Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml/badge.svg)](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](#development)
+[![Licence: GPLv3](https://img.shields.io/badge/Licence-GPLv3-blue.svg)](LICENSE)
 
-**Replace the entire old application folder, including `_internal`.** The original run #2 executable and libraries contain the affected Pillow version and are superseded.
+[Download](#download-for-windows) · [Features](#features) · [Getting started](#getting-started) · [Security](#security-and-privacy) · [Development](#development)
 
-Extract the complete ZIP into a folder, then double-click `RedactStudio.exe`. Keep the `_internal` folder beside it; this is a portable application folder, not a single self-contained executable. Python does not need to be installed on the destination PC. The executable is unsigned. Interactive Windows 11 desktop acceptance testing remains outstanding.
+![Redact Studio editor with three redactions applied to a fictional payment-details image](docs/images/editor.png)
 
-## Run from source
+*The screenshot uses fictional sample data.*
 
-Requires Python 3.12+ and a desktop session (Windows 11 is the deployment target).
+## Download for Windows
+
+### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583/artifacts/12643422335)
+
+Portable application · 52.9 MB · Python installation not required
+
+1. Download the application ZIP using the link above.
+2. Extract **all files** into a folder on your computer.
+3. Double-click **`RedactStudio.exe`** to launch the application.
+
+Keep the **`_internal`** folder beside the executable. It contains the libraries the application needs to run.
+
+> **Updating an older copy?** Replace the entire application folder, including `_internal`. The current package uses **Pillow 13.0.0**, which patches the reported Pillow vulnerabilities. See the [dependency security review](DEPENDENCY_SECURITY.md).
+
+GitHub’s **Code → Download ZIP** downloads the Python source. For the executable, use the application download above. You can also find application artifacts under [Windows builds](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml).
+
+Windows is the deployment target. The executable is unsigned; Windows CI tests and the packaged self-test pass, while interactive Windows 11 acceptance testing remains outstanding. See the [validation record](VALIDATION.md).
+
+## Features
+
+- **Manual redaction:** draw opaque rectangles or paint continuous freehand strokes with an adjustable brush.
+- **Editable selections:** select, move, resize, duplicate and delete regions, with independent undo/redo history for each image.
+- **Image navigation:** cursor-centred zoom from 10–800%, fit-to-window, actual size and drag panning.
+- **Multiple images:** work in separate tabs, then export individually or review each image in a batch.
+- **Export review:** inspect the decoded output image before confirming a save, including an explicit acknowledgement for images with no redactions.
+- **Clipboard support:** paste an image or copy reviewed, sanitised output pixels.
+- **Appearance and defaults:** dark/light themes, solid redaction colours and configurable export preferences.
+
+### Supported formats
+
+| Operation | Formats |
+| --- | --- |
+| Import | PNG, JPEG/JPG, BMP, single-frame TIFF and WebP |
+| Export | PNG, JPEG and lossless WebP |
+| Default export | PNG, named `OriginalFilename_REDACTED.png` |
+
+Animated and multi-frame images are rejected. Images are limited to **24 megapixels each**, with a **48-megapixel** budget across open documents. Source orientation and image resolution are preserved; transparency is flattened against white on export.
+
+## Getting started
+
+1. **Open an image.** Use the toolbar, drag a file into the window or paste from the clipboard.
+2. **Mark sensitive content.** Choose Rectangle or Freehand, then cover the information you want removed. Use Selection to adjust regions.
+3. **Review the output.** Select Preview or Export and inspect the entire image at its output resolution.
+4. **Save a sanitised copy.** Choose a format and destination, confirm your review and export.
+
+Existing filenames receive a unique suffix. Original files are opened read-only and are never overwritten. Every export strips inherited metadata, including images exported without redactions.
+
+PNG is recommended for predictable pixel coverage. JPEG expands redactions to complete **8×8 compression blocks** and disables chroma subsampling; its review preview shows the expanded coverage. WebP exports use lossless encoding.
+
+<details>
+<summary><strong>Keyboard shortcuts and navigation</strong></summary>
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+O` / `Ctrl+V` | Open / paste an image |
+| `Ctrl+S` / `Ctrl+Shift+S` | Export / export as |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `R` / `B` | Rectangle / freehand tool |
+| `V` / `H` | Selection / pan tool |
+| `Delete` / `Ctrl+D` | Delete / duplicate selected regions |
+| `Ctrl+0` / `Ctrl+1` | Fit to window / actual size |
+| `Ctrl+Shift+C` | Review and copy sanitised image |
+| `Esc` | Cancel the current operation |
+| Mouse wheel | Zoom at the cursor |
+| Middle-drag / `Space` + drag | Pan |
+
+In Selection mode, Ctrl/Shift-click to select multiple regions. Drag a selected rectangle’s bottom-right corner to resize it. The properties list can also select individual redactions.
+
+</details>
+
+## Security and privacy
+
+Image processing happens locally. The application has no upload, telemetry, AI, machine learning or OCR functionality. Installation and building require dependency downloads; using the installed application does not require an Internet connection.
+
+Export creates a fresh pixel buffer, overwrites the selected regions with opaque colours and re-encodes the result. Source layers, original image bytes and inherited metadata dictionaries are not included in the exported file. Metadata removal is mandatory: EXIF, GPS, XMP, IPTC, embedded thumbnails, source ICC profiles and other inherited fields are discarded. Format-required structural information and normal new-file filesystem timestamps remain.
+
+The application does not create unredacted temporary image files or save document paths and editing histories as preferences. Windows clipboard history, synchronisation, operating-system caches and external backup software are outside the application’s control. Copying an image displays a clipboard privacy warning.
+
+**Manual review is required.** Redact Studio does not identify confidential information automatically. Discarding source colour profiles can change colour appearance, and edits are held in memory without autosave.
+
+Read the [security model and Windows acceptance checklist](SECURITY.md), [dependency advisory review](DEPENDENCY_SECURITY.md) and [test results](VALIDATION.md) before organisational deployment. These checks do not constitute security certification.
+
+## Development
+
+Requires **Python 3.12+** and a desktop session. Runtime dependencies are **PySide6** and **Pillow**; testing and packaging use **pytest** and **PyInstaller**.
+
+### Run from source on Windows
 
 ```powershell
+git clone https://github.com/morganridges1-blip/Redact-Studio.git
+cd Redact-Studio
 py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip install --upgrade pip==26.2.2
 .\.venv\Scripts\python -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python main.py
 ```
 
-On Linux/macOS use `python3 -m venv .venv` and `.venv/bin/python` instead. Installation/building downloads dependencies; installed application operation requires no Internet access. The prepared cloud environment uses `/workspace/redact-venv/bin/python`. Its headless session can run tests with `QT_QPA_PLATFORM=offscreen`; it does not provide a Windows desktop.
+On Linux/macOS, create the environment with `python3 -m venv .venv` and use `.venv/bin/python` in place of `.venv\Scripts\python`.
 
-## Edit and export
-
-- Open, add, paste or drop PNG, JPEG, BMP, single-frame TIFF or WebP images. Each tab has independent edits and up to 100 undo steps. Multi-frame/animated inputs are explicitly rejected rather than silently discarding frames.
-- Rectangle (`R`): drag over information. Freehand (`B`): paint continuous strokes; diameter is measured in original image pixels. Choose a solid colour in the sidebar; alpha is never supported.
-- Selection (`V`): click or rubber-band select, Ctrl/Shift-click multiple regions, drag to move. Drag within 14 display pixels of a selected rectangle’s bottom-right corner to resize. The properties list also selects regions. Delete removes selections; Ctrl+D duplicates them.
-- Remove Redaction deletes a clicked region. Pan (`H`), middle-drag or Space+drag moves the viewport. Wheel zoom anchors at the cursor. Zoom is constrained to 10–800%.
-- Ctrl+Z undoes; Ctrl+Y or Ctrl+Shift+Z redoes. Esc cancels an active drawing/resizing operation. Geometry is stored in original-image coordinates, not display coordinates.
-- Ctrl+0 fits the image; Ctrl+1 displays actual size. Ctrl+O opens; Ctrl+V pastes; Ctrl+S / Ctrl+Shift+S opens export review.
-- Preview/Export shows **decoded final export bytes at 1:1**, in a scrollable view. Review the entire image, choose a destination and explicitly confirm. Changing format resets confirmation. PNG is the default; WebP is lossless. JPEG expands coverage to full 8×8 compression blocks and disables chroma subsampling. Review this larger coverage before saving.
-- Batch Export reviews every tab separately and reports saved, failed and cancelled counts. Images with zero redactions require an explicit metadata-only review acknowledgement. Files never silently pass as manually redacted.
-- Copy Redacted Image (Ctrl+Shift+C) uses reviewed, sanitised output pixels only and displays a Windows clipboard history/synchronisation warning. The review dialog's Save button confirms the image; clipboard copying does not save a file.
-- Settings offers dark/light appearance, default tool, current sidebar colour/brush defaults, format, destination, suffix, PNG compression and JPEG quality. Only these preferences persist; document paths, image pixels and editing histories are not saved as application preferences.
-
-Default filenames use `OriginalFilename_REDACTED.png`. Existing names receive `_1`, `_2`, etc. All open source paths are protected and files are created exclusively; no existing file is overwritten.
-
-## Security model
-
-The importer decodes and applies EXIF orientation, then creates a fresh RGBA image from pixels. It does not retain inherited metadata on that image. Editing overlays are separate geometry. Export creates a new opaque RGB buffer, flattens transparency against white, overwrites masked pixels and re-encodes a fresh image without EXIF, XMP, IPTC, thumbnails, ICC profiles or source chunks. No original bytes, layers or metadata dictionaries are copied to output encoders. See [SECURITY.md](SECURITY.md) for exact guarantees and limitations.
-
-PNG and WebP are lossless. JPEG's 8×8 block expansion ensures covered source pixels cannot influence the output through a shared compression block; JPEG can approximate custom solid colours. Image quality outside redactions is subject to JPEG compression. Source colour profiles are discarded, so some colours may differ from colour-managed viewers.
-
-No unredacted temporary image is created. Export writes sanitised bytes to a newly created destination and removes that file on handled write failures. Creation and write errors stop the operation. Source files are opened read-only. A crash/power loss can leave an incomplete sanitised output; this is not reported as success. Normal newly generated filesystem timestamps remain.
-
-Image limit: 24 million pixels each; open-document budget: 48 million pixels. Pixel import, rendering and saving run on a worker thread with modal progress to prevent concurrent edits. Qt scene construction/clipboard conversion still uses the UI thread. Memory availability below these limits can still cause a safely reported failure. Close tabs to free their retained images/history. There is no autosave or project-file format.
-
-## Tests
+### Run tests
 
 ```powershell
 $env:QT_QPA_PLATFORM = 'offscreen'
 .\.venv\Scripts\python -m pytest -q
+.\.venv\Scripts\python main.py --self-test
+
+# Repeat GUI checks at 200% display scaling.
 $env:QT_SCALE_FACTOR = '2'
 .\.venv\Scripts\python -m pytest tests/test_gui.py -q
-.\.venv\Scripts\python main.py --self-test
 ```
 
-Use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q` on headless Linux. Tests use fictional synthetic content, independently parse output PNG/JPEG/WebP containers, compare redacted pixels and counterfactual source edits, exercise GUI mouse interactions, and deny Python socket creation during a workflow smoke test. This is evidence for the tested cases, not a security certification or proof about every decoder/OS.
+For headless Linux, use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q`.
 
-## Windows executable
+The patched build passes **48 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
 
-Run on **Windows 11 with Python 3.12**:
+### Build the Windows executable
+
+Run on Windows with Python 3.12 installed:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File packaging/build-windows.ps1
-.\dist\RedactStudio\RedactStudio.exe --self-test
-.\dist\RedactStudio\RedactStudio.exe
 ```
 
-The process does not request elevation. The build script installs dependencies, runs tests and packages an onedir application. Distribute the **entire** `dist/RedactStudio` folder, including Qt/Pillow libraries and their licence notices. Do not distribute just the executable. Build-time PowerShell execution policy override applies to this command only. No installer or administrator privileges are needed for normal use.
+The script installs the pinned dependencies, runs tests, builds the application and checks the packaged executable. Output is written to **`dist/RedactStudio/`**. Distribute that entire folder, including its libraries and licence notices.
 
-`.github/workflows/windows.yml` also tests and packages on a Windows runner and uploads a downloadable artifact when run in GitHub. The workflow succeeded in the [security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583): Windows source tests, executable packaging and the frozen-application self-test all passed. PyInstaller does not cross-compile Windows executables on Linux; this executable was built on GitHub’s Windows runner. Interactive Windows 11 acceptance testing is still required.
+The [GitHub Actions workflow](.github/workflows/windows.yml) performs the Windows build and uploads the application artifact. PyInstaller builds Windows executables on Windows; it does not cross-compile them from Linux.
 
-Before workplace deployment, run the Windows acceptance checklist in [SECURITY.md](SECURITY.md), review dependency licences and decide whether your organisation requires executable signing. Unsigned executables can trigger SmartScreen. See [VALIDATION.md](VALIDATION.md) for executed checks and outstanding validation.
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [Security](SECURITY.md) | Data handling, export guarantees, limitations and deployment checklist |
+| [Dependency security](DEPENDENCY_SECURITY.md) | Patched Pillow advisories and replacement package details |
+| [Validation](VALIDATION.md) | Executed checks, build evidence and outstanding acceptance tests |
+| [Dependency audit](packaging/dependency-audit-2026-10-26.json) | Dated advisory metadata for the Linux development environment |
+
+## Licence
+
+Distributed under the [GNU General Public License v3.0](LICENSE). Bundled dependencies retain their respective licences and notices.
