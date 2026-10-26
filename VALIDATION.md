@@ -36,4 +36,4 @@ The [patched Windows build](https://github.com/morganridges1-blip/Redact-Studio/
 
 ## PDF implementation validation
 
-The PDF implementation passes 63 tests on Linux, including 15 PDF tests. All 27 GUI/PDF tests also pass at 200% display scaling. The source and Linux packaged application self-tests cover PDF rendering, redaction and image-only PDF round trips; independent pypdf inspection validates object removal and lossless pixel data. Windows CI must additionally build and run the updated packaged self-test before the new application download is recommended. See PDF_SUPPORT.md for functionality and limitations.
+The PDF implementation passes 64 tests on Linux, including 16 PDF tests. All 28 GUI/PDF tests also pass at 200% display scaling. The source and Linux packaged application self-tests cover PDF rendering, redaction and image-only PDF round trips; independent pypdf inspection validates object removal and lossless pixel data. Windows CI must additionally build and run the updated packaged self-test before the new application download is recommended. See PDF_SUPPORT.md for functionality and limitations.

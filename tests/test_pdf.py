@@ -229,7 +229,7 @@ def test_pdf_render_snapshot_and_counterfactual_mask(tmp_path, monkeypatch):
     source.write_bytes(b'File changed after import')
     assert book.raster(0).size == (400,400)
     a = pdf_from_bytes(raw)
-    b = pdf_from_bytes(raw.replace(b'Fictional private text',b'Different private txt'))
+    b = pdf_from_bytes(raw.replace(b'Fictional private text',b'Different private text'))
     for item in (a,b):
         item.pages[0].commit([Shape('rect',((0,0),(400,200)))])
     assert encode_pdf(a) == encode_pdf(b)
@@ -275,3 +275,14 @@ def test_cropbox_and_empty_password_encryption():
     writer.encrypt('')
     buffer = BytesIO(); writer.write(buffer)
     with pytest.raises(ImageError): pdf_from_bytes(buffer.getvalue())
+
+
+def test_aggregate_pdf_source_budget(app, pdf_file, monkeypatch):
+    import redact_studio.window as module
+    window = module.Window()
+    book = load_pdf(pdf_file)
+    monkeypatch.setattr(module, 'MAX_OPEN_PDF_BYTES', len(book.source_bytes))
+    window.add_document(book)
+    with pytest.raises(ImageError): window.add_document(load_pdf(pdf_file))
+    assert window.tabs.count() == 1
+    window.tabs.clear(); window.close()

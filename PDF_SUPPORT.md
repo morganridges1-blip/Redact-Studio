@@ -17,6 +17,7 @@ Original PDFs are never modified or overwritten. Filename collisions receive a u
 | Limit | Value |
 | --- | --- |
 | Input PDF size | 100 MB |
+| Retained source bytes across open PDFs | 200 MB maximum |
 | Pages | 100 maximum |
 | Resolution | 200 DPI |
 | Rendered size per page | 24 megapixels maximum |

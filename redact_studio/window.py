@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QToolBar,QDockWidget,QWi
  QLineEdit,QFormLayout,QCheckBox,QScrollArea,QProgressDialog)
 from .canvas import Canvas, pixmap
 from .tasks import pixel_work
-from .pdf import PdfBook, load_pdf
+from .pdf import PdfBook, load_pdf, MAX_OPEN_PDF_BYTES
 from .pdf_ui import PdfEditor, PdfReview
 from .core import Document, ImageError, load_image, encode, decoded_preview, write_unique, MAX_PIXELS, MAX_DOCUMENT_PIXELS
 
@@ -224,6 +224,11 @@ class Window(QMainWindow):
     def add_document(self,document):
         book = document if isinstance(document, PdfBook) else None
         page = book.pages[0] if book else document
+        if book:
+            retained = sum(len(self.tabs.widget(i).book.source_bytes) for i in range(self.tabs.count())
+                           if isinstance(self.tabs.widget(i), PdfEditor))
+            if retained + len(book.source_bytes) > MAX_OPEN_PDF_BYTES:
+                raise ImageError('Open PDFs exceed the 200 MB source-memory budget. Close some PDFs first.')
         if self.total_pixels()+page.pixels.width*page.pixels.height > MAX_DOCUMENT_PIXELS:
             raise ImageError('Close some documents before opening more.')
         if book:

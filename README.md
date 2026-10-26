@@ -138,7 +138,7 @@ $env:QT_SCALE_FACTOR = '2'
 
 For headless Linux, use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q`.
 
-The patched build passes **63 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
+The patched build passes **64 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
 
 ### Build the Windows executable
 
