@@ -12,13 +12,13 @@ A native desktop editor for images and PDFs that permanently replaces selected i
 
 ![Redact Studio editor with three redactions applied to a fictional payment-details image](docs/images/editor.png)
 
-*The screenshot uses fictional sample data.*
+*The screenshot uses fictional sample data. [Start screen](docs/images/start-screen.png) · [Light theme](docs/images/light-theme.png)*
 
 ## Download for Windows
 
-### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40342516885/artifacts/12659657370)
+### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40345377516/artifacts/12661187398)
 
-Portable application with image and PDF support · 56.9 MB · Python installation not required
+Portable application with image and PDF support · 56.8 MB · Python installation not required
 
 1. Download the application ZIP using the link above.
 2. Extract **all files** into a folder on your computer.
