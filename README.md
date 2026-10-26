@@ -10,7 +10,7 @@ A native desktop editor for images and PDFs that permanently replaces selected i
 
 [Download](#download-for-windows) · [Features](#features) · [Getting started](#getting-started) · [Security](#security-and-privacy) · [Development](#development)
 
-![Redact Studio editor with three redactions applied to a fictional payment-details image](docs/images/editor.png)
+![Redact Studio editor with redactions applied to a fictional payment-details image](docs/images/editor.png)
 
 *The screenshot uses fictional sample data. [Start screen](docs/images/start-screen.png) · [Light theme](docs/images/light-theme.png)*
 
@@ -26,11 +26,11 @@ Portable application with image and PDF support · 56.8 MB · Python installatio
 
 Keep the **`_internal`** folder beside the executable. It contains the libraries the application needs to run.
 
-> **Updating an older copy?** Replace the entire application folder, including `_internal`. The current package uses **Pillow 13.0.0**, which patches the reported Pillow vulnerabilities. See the [dependency security review](DEPENDENCY_SECURITY.md).
+> **Updating an older copy?** Replace the entire application folder, including `_internal`.
 
 GitHub’s **Code → Download ZIP** downloads the Python source. For the executable, use the application download above. You can also find application artifacts under [Windows builds](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml).
 
-Windows is the deployment target. The executable is unsigned; Windows CI tests and the packaged self-test pass, while interactive Windows 11 acceptance testing remains outstanding. See the [validation record](VALIDATION.md).
+Windows is the deployment target. The executable is unsigned. Automated build checks do not replace your organisation’s deployment approval.
 
 ## Features
 
@@ -64,7 +64,7 @@ See [PDF processing](PDF_SUPPORT.md) for page/file limits, rendering behaviour a
 
 ## Getting started
 
-1. **Open an image.** Use the toolbar, drag a file into the window or paste from the clipboard.
+1. **Open an image or PDF.** Use the toolbar, drag a file into the window or paste from the clipboard.
 2. **Mark sensitive content.** Choose Rectangle or Freehand, then cover the information you want removed. Use Selection to adjust regions.
 3. **Review the output.** Select Preview or Export and inspect the entire image at its output resolution.
 4. **Save a sanitised copy.** Choose a format and destination, confirm your review and export.
@@ -105,7 +105,7 @@ The application does not create unredacted temporary image files or save documen
 
 **Manual review is required.** Redact Studio does not identify confidential information automatically. Discarding source colour profiles can change colour appearance, and edits are held in memory without autosave.
 
-Read the [security model and Windows acceptance checklist](SECURITY.md), [dependency advisory review](DEPENDENCY_SECURITY.md) and [test results](VALIDATION.md) before organisational deployment. These checks do not constitute security certification.
+Read the [security and data-handling notes](SECURITY.md) before organisational deployment. The application has not undergone independent security certification.
 
 ## Development
 
@@ -138,7 +138,7 @@ $env:QT_SCALE_FACTOR = '2'
 
 For headless Linux, use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q`.
 
-The patched build passes **79 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
+The Windows build runs automated tests and a packaged application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical monitor testing should be included in deployment acceptance checks.
 
 ### Build the Windows executable
 
@@ -154,13 +154,8 @@ The [GitHub Actions workflow](.github/workflows/windows.yml) performs the Window
 
 ## Documentation
 
-| Document | Contents |
-| --- | --- |
-| [PDF processing](PDF_SUPPORT.md) | Page editing, image-only export, limits and validation |
-| [Security](SECURITY.md) | Data handling, export guarantees, limitations and deployment checklist |
-| [Dependency security](DEPENDENCY_SECURITY.md) | Patched Pillow advisories and replacement package details |
-| [Validation](VALIDATION.md) | Executed checks, build evidence and outstanding acceptance tests |
-| [Dependency audit](packaging/dependency-audit-2026-10-26.json) | Dated advisory metadata for the Linux development environment |
+- [PDF processing](PDF_SUPPORT.md): navigation, export behaviour and limits.
+- [Security and data handling](SECURITY.md): local processing and operating limitations.
 
 ## Licence
 

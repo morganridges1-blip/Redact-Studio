@@ -29,17 +29,4 @@ Pages are rendered on demand; only the active page is retained as editable pixel
 
 Encrypted/password-protected PDFs (including empty-password encryption), XFA forms, invalid files and documents exceeding these limits are rejected. Open an approved, unencrypted/flattened copy if needed. No password recovery or bypass is provided.
 
-## Implementation and verification
-
-- `redact_studio/pdf.py`: PDFium rasterisation, size/page preflight and a fresh image-only PDF writer. All PDFium calls are serialised because PDFium is not thread-safe. The form configuration disables XFA and supplies no JavaScript platform or action callbacks. Document/page JavaScript actions are never invoked.
-- `redact_studio/pdf_ui.py`: page navigation, independent edit histories and all-page overview and a single whole-document approval.
-- `pypdfium2==5.14.0`: runtime renderer with bundled PDFium. PyInstaller includes the native library and package licence metadata.
-- `pypdf==6.21.2`: development-only, independent PDF inspection and synthetic fixture creation. It is excluded from the packaged application.
-
-The new dependencies had no active advisories in their exact-version PyPI metadata when checked on 26 October 2026. That is a dated known-advisory check, not a security certification of the native parser.
-
-Tests use synthetic PDFs with text, XMP/author metadata, attachments, JavaScript, annotations and form fields. Independent pypdf inspection checks that output contains only a fresh page tree, content instructions and sanitised image objects; image bytes match the redaction engine output. Tests also cover rotated/cropped pages, page order, physical size, lazy caching, separate histories, source preservation, encrypted/corrupt inputs, budgets, failed rendering, PDF export routing and whole-document approval, thumbnail completeness and full-resolution inspection. The packaged application self-test exercises PDFium import, PDF decoding, redaction and PDF re-encoding without using pypdf or writing unredacted temporary files.
-
-The [Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437) passed all 79 tests and the packaged PDF self-test. Download the [PDF-capable Windows application](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437/artifacts/12661539918) and replace the full application folder.
-
-Higher DPI uses more memory and may increase file size. Standard A4 at 600 DPI is supported within the page budget. Larger pages/documents may require 300 or 400 DPI; limit errors instruct you to choose a lower resolution and reopen. The application does not silently reduce export resolution.
+Higher DPI uses more memory and can increase file size. Standard A4 at 600 DPI fits within the page budget. Larger documents may require a lower resolution; the application does not silently reduce export quality.
