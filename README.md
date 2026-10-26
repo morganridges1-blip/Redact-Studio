@@ -5,7 +5,7 @@ Native Python / Qt desktop editor for manual image redaction and mandatory metad
 
 ## Download the Windows executable
 
-**Security update:** Pillow is now **13.0.0**, fixing the reported Pillow advisories. Download the rebuilt **[RedactStudio-Windows ZIP](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583/artifacts/12643422335)** (52.9 MB) while signed into GitHub, or open the [successful security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583) and find **Artifacts**. The Windows tests and packaged-application self-test passed. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
+**Security update:** Pillow is now **13.0.0**, fixing the reported Pillow advisories. Download the rebuilt **[RedactStudio-Windows ZIP](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583/artifacts/12643422335)** (52.9 MB), or open the [successful security-update run](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40307502583) and find **Artifacts**. The Windows tests and packaged-application self-test passed. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
 
 **Replace the entire old application folder, including `_internal`.** The original run #2 executable and libraries contain the affected Pillow version and are superseded.
 
