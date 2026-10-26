@@ -43,3 +43,24 @@ jobs:
           name: Windows-test-results
           path: test-results.xml
           if-no-files-found: ignore
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: RedactStudio-Windows
+          path: RedactStudio
+      - name: Publish Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          zip -r RedactStudio-Windows.zip RedactStudio > /dev/null
+          sha256sum RedactStudio-Windows.zip > SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" RedactStudio-Windows.zip SHA256SUMS.txt --verify-tag --title "Redact Studio $RELEASE_TAG" --notes-file .github/release-notes.md

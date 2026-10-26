@@ -1,6 +1,6 @@
 # Redact Studio
 
-**Redact sensitive information in images, entirely on your own device.**
+**Redact sensitive information in images and PDFs, entirely on your own device.**
 
 A native desktop editor for images and PDFs that permanently replaces selected image pixels and automatically removes inherited metadata from exported copies. Built with Python, PySide6, Pillow and PDFium for offline use.
 
@@ -16,9 +16,9 @@ A native desktop editor for images and PDFs that permanently replaces selected i
 
 ## Download for Windows
 
-### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40348143437/artifacts/12661539918)
+### [Download RedactStudio-Windows.zip](https://github.com/morganridges1-blip/Redact-Studio/releases/latest/download/RedactStudio-Windows.zip)
 
-Portable application with image and PDF support · 56.8 MB · Python installation not required
+Portable application with image and PDF support · Python installation not required · No GitHub account needed
 
 1. Download the application ZIP using the link above.
 2. Extract **all files** into a folder on your computer.
@@ -28,7 +28,7 @@ Keep the **`_internal`** folder beside the executable. It contains the libraries
 
 > **Updating an older copy?** Replace the entire application folder, including `_internal`.
 
-GitHub’s **Code → Download ZIP** downloads the Python source. For the executable, use the application download above. You can also find application artifacts under [Windows builds](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml).
+GitHub’s **Code → Download ZIP** downloads the Python source. For the executable, use the application download above. Public downloads and checksums are available on the [Releases page](https://github.com/morganridges1-blip/Redact-Studio/releases/latest). Development artifacts remain under [Windows builds](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml).
 
 Windows is the deployment target. The executable is unsigned. Automated build checks do not replace your organisation’s deployment approval.
 
@@ -150,7 +150,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build-windows.ps1
 
 The script installs the pinned dependencies, runs tests, builds the application and checks the packaged executable. Output is written to **`dist/RedactStudio/`**. Distribute that entire folder, including its libraries and licence notices.
 
-The [GitHub Actions workflow](.github/workflows/windows.yml) performs the Windows build and uploads the application artifact. PyInstaller builds Windows executables on Windows; it does not cross-compile them from Linux.
+The [GitHub Actions workflow](.github/workflows/windows.yml) performs the Windows build and uploads the application artifact. Version tags (`v*`) also publish the tested Windows ZIP and its SHA-256 checksum as a public GitHub release. PyInstaller builds Windows executables on Windows; it does not cross-compile them from Linux.
 
 ## Documentation
 
