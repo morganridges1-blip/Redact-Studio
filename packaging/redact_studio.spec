@@ -3,13 +3,13 @@ from pathlib import Path
 from PyInstaller.utils.hooks import copy_metadata
 root = Path(SPECPATH).parent
 licence_metadata = []
-for package in ('Pillow', 'PySide6', 'PySide6_Essentials', 'PySide6_Addons', 'shiboken6'):
+for package in ('Pillow', 'PySide6', 'PySide6_Essentials', 'PySide6_Addons', 'shiboken6', 'pypdfium2'):
     licence_metadata += copy_metadata(package)
 analysis = Analysis(
     [str(root / 'main.py')], pathex=[str(root)], binaries=[], datas=licence_metadata,
     hiddenimports=[], hookspath=[], hooksconfig={}, runtime_hooks=[],
     excludes=['PySide6.QtNetwork','PySide6.QtWebEngineCore','PySide6.QtWebEngineWidgets',
-              'PySide6.QtQml','PySide6.QtQuick','PySide6.QtMultimedia','tkinter'],
+              'PySide6.QtQml','PySide6.QtQuick','PySide6.QtMultimedia','tkinter','pypdf'],
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)

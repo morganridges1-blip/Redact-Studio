@@ -33,12 +33,14 @@ class Shape:
 
 @dataclass
 class Document:
-    pixels: Image.Image
+    pixels: Image.Image | None
     source: Path | None = None
     name: str = 'Clipboard'
     shapes: list = field(default_factory=list)
     undo_stack: list = field(default_factory=list)
     redo_stack: list = field(default_factory=list)
+    pdf_book: object | None = field(default=None, repr=False)
+    page_index: int = 0
 
     def commit(self, shapes):
         if list(shapes) == self.shapes:

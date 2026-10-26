@@ -24,6 +24,15 @@ def main():
                     output = decoded_preview(encode(document, fmt))
                     if output.size != (64, 48) or output.getpixel((8, 8)) != (0, 0, 0):
                         raise RuntimeError('Pixel verification failed')
+                from redact_studio.pdf import PdfBook, encode_pdf, pdf_from_bytes, preview_pdf
+                seed = PdfBook(b'', None, 'Synthetic PDF', [(72,54)], [document])
+                pdf_data = encode_pdf(seed)
+                book = pdf_from_bytes(pdf_data)
+                window.add_document(book)
+                book.pages[0].commit([Shape('rect', ((0,0),(50,50)))])
+                pdf_output = encode_pdf(book)
+                if preview_pdf(pdf_output,0).getpixel((10,10)) != (0,0,0):
+                    raise RuntimeError('PDF pixel verification failed')
                 window.tabs.clear()
                 app.exit(0)
             except Exception:

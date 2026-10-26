@@ -2,7 +2,7 @@
 
 **Redact sensitive information in images, entirely on your own device.**
 
-A native desktop editor that permanently replaces selected image pixels and automatically removes inherited metadata from exported copies. Built with Python, PySide6 and Pillow for offline use.
+A native desktop editor for images and PDFs that permanently replaces selected image pixels and automatically removes inherited metadata from exported copies. Built with Python, PySide6, Pillow and PDFium for offline use.
 
 [![Windows build](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml/badge.svg)](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](#development)
@@ -34,6 +34,8 @@ Windows is the deployment target. The executable is unsigned; Windows CI tests a
 
 ## Features
 
+- **PDF processing:** edit pages with the same redaction tools, navigate within a document and export a new image-only PDF after reviewing every page.
+
 - **Manual redaction:** draw opaque rectangles or paint continuous freehand strokes with an adjustable brush.
 - **Editable selections:** select, move, resize, duplicate and delete regions, with independent undo/redo history for each image.
 - **Image navigation:** cursor-centred zoom from 10–800%, fit-to-window, actual size and drag panning.
@@ -46,11 +48,19 @@ Windows is the deployment target. The executable is unsigned; Windows CI tests a
 
 | Operation | Formats |
 | --- | --- |
-| Import | PNG, JPEG/JPG, BMP, single-frame TIFF and WebP |
-| Export | PNG, JPEG and lossless WebP |
+| Import | PDF, PNG, JPEG/JPG, BMP, single-frame TIFF and WebP |
+| Export | PDF for PDF documents; PNG, JPEG and lossless WebP for images |
 | Default export | PNG, named `OriginalFilename_REDACTED.png` |
 
 Animated and multi-frame images are rejected. Images are limited to **24 megapixels each**, with a **48-megapixel** budget across open documents. Source orientation and image resolution are preserved; transparency is flattened against white on export.
+
+## Working with PDFs
+
+Open a PDF, use the page controls to navigate, and redact each page as you would an image. Export creates a **new PDF containing all sanitised pages**. Each page must be reviewed and approved before saving.
+
+PDF pages are rasterised at **200 DPI**. The exported PDF contains image-only pages: source text layers, metadata, attachments and interactive content are removed. Searchable text, links, form fields, accessibility tags and digital signatures are not preserved. Password-protected/encrypted PDFs and XFA forms are not supported.
+
+See [PDF processing](PDF_SUPPORT.md) for page/file limits, rendering behaviour and security tests.
 
 ## Getting started
 
@@ -99,7 +109,7 @@ Read the [security model and Windows acceptance checklist](SECURITY.md), [depend
 
 ## Development
 
-Requires **Python 3.12+** and a desktop session. Runtime dependencies are **PySide6** and **Pillow**; testing and packaging use **pytest** and **PyInstaller**.
+Requires **Python 3.12+** and a desktop session. Runtime dependencies are **PySide6**, **Pillow** and **pypdfium2**; testing and packaging use **pytest** and **PyInstaller**.
 
 ### Run from source on Windows
 
@@ -128,7 +138,7 @@ $env:QT_SCALE_FACTOR = '2'
 
 For headless Linux, use `QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest -q`.
 
-The patched build passes **48 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
+The patched build passes **63 tests** and the packaged Windows application self-test. Tests use synthetic content to check pixel replacement, metadata removal, source integrity, export failures and editor interactions. The GUI suite also passes at 200% scaling on Linux; physical Windows monitor testing remains part of the acceptance checklist.
 
 ### Build the Windows executable
 
@@ -146,6 +156,7 @@ The [GitHub Actions workflow](.github/workflows/windows.yml) performs the Window
 
 | Document | Contents |
 | --- | --- |
+| [PDF processing](PDF_SUPPORT.md) | Page editing, image-only export, limits and validation |
 | [Security](SECURITY.md) | Data handling, export guarantees, limitations and deployment checklist |
 | [Dependency security](DEPENDENCY_SECURITY.md) | Patched Pillow advisories and replacement package details |
 | [Validation](VALIDATION.md) | Executed checks, build evidence and outstanding acceptance tests |

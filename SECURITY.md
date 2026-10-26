@@ -32,3 +32,7 @@ Runtime dependency pins are in `requirements.txt`; testing and packaging pins ar
 - Independently inspect exported files using an approved metadata utility (for example ExifTool): no inherited GPS, EXIF, XMP, IPTC, ICC, comments or thumbnails. Verify orientation and pixel coverage in another image viewer.
 - Test batch review, zero-redaction acknowledgement, filename collisions, source integrity, invalid directories and large-image responsiveness.
 - Review dependency inventory/licences, code-signing requirements, deployment policy and source with the security/data-governance team. These tests are not a certification.
+
+## PDF documents
+
+PDF input is rasterised locally with PDFium at 200 DPI and exported through a fresh image-only PDF writer. No source PDF objects, text streams, metadata, attachments, actions, signatures or editable layers are copied. Review requires approval of every page, including explicit approval for pages without redactions. Encrypted PDFs and XFA forms are rejected. The source is retained in memory without unredacted temporary files. See [PDF_SUPPORT.md](PDF_SUPPORT.md) for limits, native renderer configuration and independent object/pixel checks. PDFium is a native parser and requires ongoing dependency security review.

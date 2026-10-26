@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QToolBar,QDockWidget,QWi
  QLineEdit,QFormLayout,QCheckBox,QScrollArea,QProgressDialog)
 from .canvas import Canvas, pixmap
 from .tasks import pixel_work
+from .pdf import PdfBook, load_pdf
+from .pdf_ui import PdfEditor, PdfReview
 from .core import Document, ImageError, load_image, encode, decoded_preview, write_unique, MAX_PIXELS, MAX_DOCUMENT_PIXELS
 
 WARNING = ('Please review the entire image before exporting. Redact Studio does not automatically '
@@ -118,8 +120,8 @@ class Window(QMainWindow):
         self.addToolBar(self.toolbar)
         self.actions = {}
         for name,shortcut,callback in [
-            ('Open Image','Ctrl+O',self.open_files),('Paste Image','Ctrl+V',self.paste),
-            ('Add Images','',self.open_files),('Undo','Ctrl+Z',lambda:self.history(False)),
+            ('Open Image / PDF','Ctrl+O',self.open_files),('Paste Image','Ctrl+V',self.paste),
+            ('Add Files','',self.open_files),('Undo','Ctrl+Z',lambda:self.history(False)),
             ('Redo','Ctrl+Y',lambda:self.history(True)),('Zoom In','Ctrl++',lambda:self.navigate('in')),
             ('Zoom Out','Ctrl+-',lambda:self.navigate('out')),('Fit to Window','Ctrl+0',lambda:self.navigate('fit')),
             ('Actual Size','Ctrl+1',lambda:self.navigate('actual')),('Preview','',self.export),
@@ -192,10 +194,27 @@ class Window(QMainWindow):
         dock=QDockWidget(title,self); dock.setWidget(widget); dock.setMinimumWidth(210)
         self.addDockWidget(area,dock)
 
-    def canvas(self): return self.tabs.currentWidget()
+    def canvas(self):
+        tab = self.tabs.currentWidget()
+        return tab.canvas if isinstance(tab, PdfEditor) else tab
+
+    def subject(self, index=None):
+        tab = self.tabs.currentWidget() if index is None else self.tabs.widget(index)
+        return tab.book if isinstance(tab, PdfEditor) else tab.document
+
+    def connect_canvas(self, canvas):
+        canvas.changed.connect(self.sync)
+        canvas.zoomed.connect(self.status)
+        canvas.scene().selectionChanged.connect(self.selection_status)
+
+    def pdf_ready(self, editor):
+        self.connect_canvas(editor.canvas)
+        self.sync()
 
     def guard(self,operation):
         try: return operation()
+        except ImageError as error:
+            QMessageBox.warning(self, 'Operation stopped', str(error))
         except Exception:
             QMessageBox.warning(self,'Operation stopped','The operation could not be completed safely. Check the image, available memory, destination permissions and disk space. No original image was changed.')
 
@@ -203,26 +222,34 @@ class Window(QMainWindow):
         return sum(self.tabs.widget(i).document.pixels.width*self.tabs.widget(i).document.pixels.height for i in range(self.tabs.count()))
 
     def add_document(self,document):
-        if self.total_pixels()+document.pixels.width*document.pixels.height > MAX_DOCUMENT_PIXELS:
-            raise ImageError('Close some images before opening more.')
-        canvas=Canvas(document)
+        book = document if isinstance(document, PdfBook) else None
+        page = book.pages[0] if book else document
+        if self.total_pixels()+page.pixels.width*page.pixels.height > MAX_DOCUMENT_PIXELS:
+            raise ImageError('Close some documents before opening more.')
+        if book:
+            editor = PdfEditor(book, lambda pixels: self.total_pixels() - editor.document.pixels.width*editor.document.pixels.height + pixels <= MAX_DOCUMENT_PIXELS)
+            editor.ready.connect(lambda: self.pdf_ready(editor))
+            canvas = editor.canvas
+            tab = editor
+        else:
+            canvas = Canvas(document)
+            tab = canvas
         canvas.color=self.color; canvas.brush=self.brush.value()
         canvas.set_tool(self.default_tool)
-        canvas.changed.connect(self.sync)
-        canvas.zoomed.connect(self.status)
-        canvas.scene().selectionChanged.connect(self.selection_status)
-        index=self.tabs.addTab(canvas,document.name)
+        self.connect_canvas(canvas)
+        index=self.tabs.addTab(tab,document.name)
         self.tabs.setCurrentIndex(index)
         QTimer.singleShot(0,canvas.fit)
         self.sync()
 
     def open_files(self):
-        paths,_=QFileDialog.getOpenFileNames(self,'Open images','','Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)')
+        paths,_=QFileDialog.getOpenFileNames(self,'Open images or PDFs','','Images and PDF (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)')
         self.import_paths(paths)
 
     def import_paths(self,paths):
         for path in paths:
-            self.guard(lambda p=path:self.add_document(pixel_work(self,lambda:load_image(p),'Loading image locally…')))
+            loader = load_pdf if Path(path).suffix.lower() == '.pdf' else load_image
+            self.guard(lambda p=path,fn=loader:self.add_document(pixel_work(self,lambda:fn(p),'Loading document locally…')))
 
     def paste(self):
         def operation():
@@ -288,7 +315,8 @@ class Window(QMainWindow):
         c=self.canvas()
         if c:
             d=c.document
-            self.statusBar().showMessage(f'{d.source.name if d.source else d.name} • {d.pixels.width} × {d.pixels.height} • {c.transform().m11()*100:.0f}% • {len(d.shapes)} redactions • Local processing')
+            page_info = f' • Page {d.page_index+1}/{len(d.pdf_book.pages)} • 200 DPI' if d.pdf_book else ''
+            self.statusBar().showMessage(f'{d.source.name if d.source else d.name} • {d.pixels.width} × {d.pixels.height} • {c.transform().m11()*100:.0f}% • {len(d.shapes)} redactions{page_info} • Local processing')
 
     def history(self,redo):
         if self.text_editing(): return
@@ -320,6 +348,13 @@ class Window(QMainWindow):
     def sources(self): return [self.tabs.widget(i).document.source for i in range(self.tabs.count())]
 
     def export_document(self,document):
+        if isinstance(document, PdfBook):
+            dialog = PdfReview(document, self.defaults, self)
+            if dialog.exec() != QDialog.Accepted:
+                return None
+            destination = Path(dialog.destination.text()).with_suffix('.pdf')
+            sources = self.sources()
+            return pixel_work(self, lambda: write_unique(dialog.data, destination, sources), 'Saving sanitised PDF…')
         dialog=Review(document,self.defaults,self)
         if dialog.exec()!=QDialog.Accepted: return None
         fmt=dialog.format.currentText()
@@ -332,7 +367,7 @@ class Window(QMainWindow):
 
     def export(self):
         if self.canvas():
-            result=self.guard(lambda:self.export_document(self.canvas().document))
+            result=self.guard(lambda:self.export_document(self.subject()))
             if result: QMessageBox.information(self,'Export complete','Sanitised copy saved. Metadata: Automatically stripped.')
 
     def batch(self):
@@ -340,7 +375,7 @@ class Window(QMainWindow):
         success=failed=skipped=0
         for i in range(self.tabs.count()):
             try:
-                result=self.export_document(self.tabs.widget(i).document)
+                result=self.export_document(self.subject(i))
                 if result: success+=1
                 else: skipped+=1
             except Exception: failed+=1
@@ -358,11 +393,11 @@ class Window(QMainWindow):
         self.guard(operation)
 
     def close_tab(self,index):
-        if QMessageBox.question(self,'Close image','Discard this image’s in-memory editing history?',QMessageBox.Yes|QMessageBox.No)==QMessageBox.Yes:
+        if QMessageBox.question(self,'Close image','Discard this document’s in-memory editing history?',QMessageBox.Yes|QMessageBox.No)==QMessageBox.Yes:
             widget=self.tabs.widget(index); self.tabs.removeTab(index); widget.deleteLater()
 
     def closeEvent(self,event):
-        if self.tabs.count() and QMessageBox.question(self,'Exit','Close all images and discard in-memory editing history?',QMessageBox.Yes|QMessageBox.No)!=QMessageBox.Yes:
+        if self.tabs.count() and QMessageBox.question(self,'Exit','Close all documents and discard in-memory editing history?',QMessageBox.Yes|QMessageBox.No)!=QMessageBox.Yes:
             event.ignore()
         else: event.accept()
 

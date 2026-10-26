@@ -15,7 +15,7 @@ def summary(report):
     skipped = sum(case.find('skipped') is not None for case in cases)
     lines = ['## Windows tests', '',
              f'{len(cases)} tests; {len(failures)} failures/errors; {skipped} skipped.', '',
-             f'Built with Pillow {version("Pillow")}, PySide6 {version("PySide6")}, pytest {version("pytest")}.', '']
+             f'Built with Pillow {version("Pillow")}, PySide6 {version("PySide6")}, pypdfium2 {version("pypdfium2")}, pytest {version("pytest")}.', '']
     for case, failure in failures:
         lines += [f'### {case.get("classname", "")}.{case.get("name", "")}', '',
                   '```text', (failure.text or failure.get('message', ''))[:12000], '```', '']
