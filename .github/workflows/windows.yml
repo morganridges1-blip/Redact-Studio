@@ -1,0 +1,26 @@
+name: Windows validation and package
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - run: python -m PyInstaller --clean --noconfirm packaging/redact_studio.spec
+      - name: Frozen application self-test
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $result = Start-Process -FilePath '.\dist\RedactStudio\RedactStudio.exe' -ArgumentList '--self-test' -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw 'Frozen application self-test failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RedactStudio-Windows
+          path: dist/RedactStudio/
