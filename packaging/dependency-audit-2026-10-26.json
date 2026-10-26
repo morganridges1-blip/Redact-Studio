@@ -49,6 +49,16 @@
       "active_advisories": []
     },
     {
+      "name": "pypdf",
+      "version": "6.21.2",
+      "active_advisories": []
+    },
+    {
+      "name": "pypdfium2",
+      "version": "5.14.0",
+      "active_advisories": []
+    },
+    {
       "name": "PySide6",
       "version": "6.10.2",
       "active_advisories": []
