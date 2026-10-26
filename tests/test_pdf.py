@@ -143,7 +143,7 @@ def test_pdf_preview_orientation_matches_output_image(pdf_file):
         assert image.tobytes() == expected.tobytes()
 
 
-def test_pdf_editor_switch_and_mandatory_page_review(app, pdf_file):
+def test_pdf_editor_switch_and_whole_document_review(app, pdf_file):
     from redact_studio.window import Window
     from redact_studio.pdf_ui import PdfEditor, PdfReview
     from PySide6.QtWidgets import QDialog
@@ -163,13 +163,16 @@ def test_pdf_editor_switch_and_mandatory_page_review(app, pdf_file):
     assert book.pages[1].shapes
     review = PdfReview(book, window.defaults, window)
     assert 'NO redactions' in review.confirm.text()
-    review.confirm.setChecked(True)
+    assert review.overview.count() == 2
+    assert 'NO redactions' in review.overview.item(0).text()
     review.accept(); assert review.result() != QDialog.Accepted
-    review.number.setValue(2)
-    assert not review.confirm.isChecked()
     review.confirm.setChecked(True)
     assert review.save_button.isEnabled()
-    review.number.setValue(1)
+    review.open_detail(review.overview.item(1))
+    assert review.number.value() == 2
+    assert review.views.currentIndex() == 1
+    assert review.confirm.isChecked()
+    review.views.setCurrentIndex(0)
     review.confirm.setChecked(False)
     assert not review.save_button.isEnabled()
     review.confirm.setChecked(True)
@@ -192,7 +195,7 @@ def test_pdf_export_route_and_mixed_batch_subjects(app, pdf_file, tmp_path, monk
     target = tmp_path/'output.png'
     def approve(dialog):
         dialog.destination.setText(str(target))
-        dialog.approved = set(range(len(dialog.book.pages)))
+        dialog.confirm.setChecked(True)
         dialog.accept()
         return dialog.result()
     monkeypatch.setattr(PdfReview, 'exec', approve)
@@ -213,7 +216,8 @@ def test_review_preview_failure_disables_pdf_export(app, pdf_file, monkeypatch):
     monkeypatch.setattr(QMessageBox, 'warning', lambda *args: QMessageBox.Ok)
     review.number.setValue(2)
     assert review.data is None and not review.save_button.isEnabled()
-    assert not review.approved
+    assert not review.confirm.isChecked()
+    assert review.overview.count() == 0
     review.accept(); assert review.result() != QDialog.Accepted
     review.close()
 
@@ -286,3 +290,27 @@ def test_aggregate_pdf_source_budget(app, pdf_file, monkeypatch):
     with pytest.raises(ImageError): window.add_document(load_pdf(pdf_file))
     assert window.tabs.count() == 1
     window.tabs.clear(); window.close()
+
+
+def test_all_page_thumbnails_use_actual_sanitised_output(pdf_file):
+    from redact_studio.pdf import preview_pdf_pages
+    book = load_pdf(pdf_file)
+    book.pages[0].commit([Shape('rect', ((0,0),(400,200)))])
+    pages = preview_pdf_pages(encode_pdf(book), max_size=240)
+    assert len(pages) == 2
+    assert all(max(page.size) <= 240 for page in pages)
+    assert pages[0].getpixel((30,30)) == (0,0,0)
+    assert pages[1].height > pages[1].width
+
+
+def test_incomplete_overview_cannot_be_exported(app, pdf_file, monkeypatch):
+    import redact_studio.pdf_ui as module
+    from PySide6.QtWidgets import QMessageBox, QDialog
+    monkeypatch.setattr(module, 'preview_pdf_pages', lambda *args: [Image.new('RGB',(10,10))])
+    monkeypatch.setattr(QMessageBox, 'warning', lambda *args: QMessageBox.Ok)
+    review = module.PdfReview(load_pdf(pdf_file), {'directory':'','suffix':'_REDACTED'})
+    assert review.data is None
+    assert not review.confirm.isEnabled()
+    assert not review.save_button.isEnabled()
+    review.accept(); assert review.result() != QDialog.Accepted
+    review.close()

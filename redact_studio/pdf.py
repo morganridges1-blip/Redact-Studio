@@ -170,3 +170,16 @@ def preview_pdf(data, index):
         with closing(pdf[index]) as page:
             with closing(page.render(scale=PDF_DPI / 72)) as bitmap:
                 return bitmap.to_pil().convert('RGB').copy()
+
+
+def preview_pdf_pages(data, max_size=240):
+    """Bounded thumbnails of every actual output page for document review."""
+    images = []
+    with _PDF_LOCK, pdfium.PdfDocument(data) as pdf:
+        for index in range(len(pdf)):
+            with closing(pdf[index]) as page:
+                width, height = page.get_size()
+                scale = min(PDF_DPI / 72, max_size / max(width, height))
+                with closing(page.render(scale=scale)) as bitmap:
+                    images.append(bitmap.to_pil().convert('RGB').copy())
+    return images
