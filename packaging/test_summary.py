@@ -1,5 +1,6 @@
 """Publish synthetic test outcomes in the GitHub Actions run summary."""
 import os
+from importlib.metadata import version
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -13,7 +14,8 @@ def summary(report):
                 for failure in list(case.findall('failure')) + list(case.findall('error'))]
     skipped = sum(case.find('skipped') is not None for case in cases)
     lines = ['## Windows tests', '',
-             f'{len(cases)} tests; {len(failures)} failures/errors; {skipped} skipped.', '']
+             f'{len(cases)} tests; {len(failures)} failures/errors; {skipped} skipped.', '',
+             f'Built with Pillow {version("Pillow")}, PySide6 {version("PySide6")}, pytest {version("pytest")}.', '']
     for case, failure in failures:
         lines += [f'### {case.get("classname", "")}.{case.get("name", "")}', '',
                   '```text', (failure.text or failure.get('message', ''))[:12000], '```', '']

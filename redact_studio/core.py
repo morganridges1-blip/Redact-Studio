@@ -63,7 +63,7 @@ def load_image(path):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
-            with Image.open(path) as source:
+            with Image.open(path, formats=sorted(SUPPORTED)) as source:
                 if source.format not in SUPPORTED:
                     raise ImageError('Unsupported image format.')
                 if getattr(source, 'n_frames', 1) != 1:

@@ -224,3 +224,20 @@ def test_real_exif_ifd1_thumbnail_removed(tmp_path,fmt):
     output=encode(load_image(source),fmt)
     assert payload not in output and thumb not in output
     if fmt=='JPEG': assert 0xe1 not in jpeg_segments(output)
+
+
+def test_unsupported_decoder_is_not_invoked(tmp_path, monkeypatch):
+    """A misleading extension must not reach an unapproved Pillow opener."""
+    source = tmp_path / 'disguised.png'
+    source.write_bytes(b'%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 10 10\nshowpage\n')
+    Image.init()
+    calls = []
+
+    def forbidden_decoder(*args, **kwargs):
+        calls.append(True)
+        raise AssertionError('Unsupported decoder must not be invoked')
+
+    monkeypatch.setitem(Image.OPEN, 'EPS', (forbidden_decoder, lambda prefix: True))
+    with pytest.raises(ImageError):
+        load_image(source)
+    assert not calls

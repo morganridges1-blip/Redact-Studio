@@ -5,7 +5,7 @@ Native Python / Qt desktop editor for manual image redaction and mandatory metad
 
 ## Download the Windows executable
 
-A Windows package was built and its packaged-application self-test passed in [GitHub Actions run #2](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40305162812). While signed into GitHub, open that run and download **RedactStudio-Windows** under **Artifacts** (52.8 MB).
+**Security update:** use a build containing Pillow **13.0.0**. The original Windows package from run #2 contains an affected Pillow version and is superseded. A replacement is being validated in the [Windows build workflow](https://github.com/morganridges1-blip/Redact-Studio/actions/workflows/windows.yml). Download **RedactStudio-Windows** from the successful security-update run’s **Artifacts** section while signed into GitHub. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md) for the advisory review.
 
 Extract the complete ZIP into a folder, then double-click `RedactStudio.exe`. Keep the `_internal` folder beside it; this is a portable application folder, not a single self-contained executable. Python does not need to be installed on the destination PC. The executable is unsigned. Interactive Windows 11 desktop acceptance testing remains outstanding.
 

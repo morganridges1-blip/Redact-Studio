@@ -2,6 +2,8 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 py -3.12 -m venv .venv
 if ($LASTEXITCODE -ne 0) { throw 'Python 3.12 is required.' }
+& .\.venv\Scripts\python.exe -m pip install --upgrade pip==26.2.2
+if ($LASTEXITCODE -ne 0) { throw 'Installer upgrade failed.' }
 & .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
 $env:QT_QPA_PLATFORM = 'offscreen'
