@@ -3,7 +3,13 @@ Securely redact information from images, overwriting the pixels and deletion of 
 
 Native Python / Qt desktop editor for manual image redaction and mandatory metadata stripping. Processing uses local, deterministic Pillow operations. The application contains no AI, machine learning, OCR, HTTP client, telemetry or upload feature.
 
-## Run
+## Download the Windows executable
+
+A Windows package was built and its packaged-application self-test passed in [GitHub Actions run #2](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40305162812). While signed into GitHub, open that run and download **RedactStudio-Windows** under **Artifacts** (52.8 MB).
+
+Extract the complete ZIP into a folder, then double-click `RedactStudio.exe`. Keep the `_internal` folder beside it; this is a portable application folder, not a single self-contained executable. Python does not need to be installed on the destination PC. The executable is unsigned. Interactive Windows 11 desktop acceptance testing remains outstanding.
+
+## Run from source
 
 Requires Python 3.12+ and a desktop session (Windows 11 is the deployment target).
 
@@ -64,6 +70,6 @@ powershell -ExecutionPolicy Bypass -File packaging/build-windows.ps1
 
 The process does not request elevation. The build script installs dependencies, runs tests and packages an onedir application. Distribute the **entire** `dist/RedactStudio` folder, including Qt/Pillow libraries and their licence notices. Do not distribute just the executable. Build-time PowerShell execution policy override applies to this command only. No installer or administrator privileges are needed for normal use.
 
-`.github/workflows/windows.yml` also tests and packages on a Windows runner and uploads a downloadable artifact when run in GitHub. The workflow is provided but has not been run from this cloud task. PyInstaller does not cross-compile Windows executables on Linux. **No Windows executable has been produced or validated here.**
+`.github/workflows/windows.yml` also tests and packages on a Windows runner and uploads a downloadable artifact when run in GitHub. The workflow succeeded in [run #2](https://github.com/morganridges1-blip/Redact-Studio/actions/runs/40305162812): Windows source tests, executable packaging and the frozen-application self-test all passed. PyInstaller does not cross-compile Windows executables on Linux; this executable was built on GitHub’s Windows runner. Interactive Windows 11 acceptance testing is still required.
 
 Before workplace deployment, run the Windows acceptance checklist in [SECURITY.md](SECURITY.md), review dependency licences and decide whether your organisation requires executable signing. Unsigned executables can trigger SmartScreen. See [VALIDATION.md](VALIDATION.md) for executed checks and outstanding validation.
